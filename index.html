@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIA — Panel TV</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100%; height:100%;
+  background:#0a0c10;
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  color:#f0f2f5;
+  overflow:hidden;
+}
+
+/* SLIDESHOW */
+#slideshow { width:100%; height:100%; position:relative; }
+.slide {
+  position:absolute; inset:0;
+  opacity:0; transition:opacity 0.7s ease;
+  pointer-events:none;
+  display:flex; flex-direction:column;
+  background:#0a0c10;
+}
+.slide.active { opacity:1; pointer-events:auto; }
+
+/* HEADER */
+.hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 36px;
+  background:#111318;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  flex-shrink:0;
+}
+.logo {
+  display:flex; align-items:center; gap:12px;
+}
+.logo-box {
+  width:42px; height:42px;
+  background:#e8ff47;
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:14px; color:#0a0c10;
+  letter-spacing:-0.5px;
+}
+.logo-title { font-weight:700; font-size:15px; }
+.logo-sub { font-size:10px; color:#555c6e; letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
+.hdr-right { display:flex; align-items:center; gap:28px; }
+.hdr-label { font-size:10px; color:#555c6e; letter-spacing:1.5px; text-transform:uppercase; }
+.clock { font-size:28px; font-weight:300; letter-spacing:3px; color:#f0f2f5; font-variant-numeric:tabular-nums; }
+.clock-date { font-size:11px; color:#8a90a0; text-align:right; margin-top:2px; }
+
+/* PROGRESS */
+#prog {
+  position:fixed; bottom:0; left:0; height:3px;
+  background:#e8ff47; z-index:999;
+  transition:width linear;
+}
+
+/* DOTS */
+#dots {
+  position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
+  display:flex; gap:8px; z-index:999;
+}
+.dot {
+  width:6px; height:6px; border-radius:50%;
+  background:#333844; transition:all 0.3s;
+}
+.dot.on { background:#e8ff47; width:20px; border-radius:3px; }
+
+/* ── GANTT SLIDE ── */
+.gantt-body { flex:1; padding:24px 36px 48px; display:flex; flex-direction:column; gap:16px; overflow:hidden; }
+
+.proj-title { font-size:32px; font-weight:800; letter-spacing:-1px; color:#f0f2f5; }
+.proj-meta { font-size:11px; color:#555c6e; letter-spacing:1px; text-transform:uppercase; margin-left:12px; }
+.proj-tags { display:flex; gap:8px; margin-top:8px; }
+.tag {
+  font-size:10px; letter-spacing:1px; text-transform:uppercase;
+  padding:3px 10px; border-radius:4px; border:1px solid;
+}
+
+.gantt-wrap {
+  flex:1; background:#111318; border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; overflow:hidden; display:flex; flex-direction:column;
+}
+.gantt-months {
+  display:flex; background:#181c24;
+  border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0;
+}
+.gantt-month {
+  font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+  color:#555c6e; padding:8px 0; text-align:center; flex:1;
+  border-right:1px solid rgba(255,255,255,0.07);
+}
+.gantt-month:last-child { border-right:none; }
+.gantt-month.cur { color:#e8ff47; }
+.gantt-month-label { width:180px; flex-shrink:0; border-right:1px solid rgba(255,255,255,0.07); }
+
+.gantt-rows { flex:1; position:relative; overflow:hidden; }
+
+.today-line {
+  position:absolute; top:0; bottom:0; width:2px;
+  background:#e8ff47; opacity:0.7; z-index:10;
+}
+.today-tag {
+  position:absolute; top:0;
+  font-size:9px; color:#e8ff47; background:#0a0c10;
+  padding:1px 4px; border-radius:2px;
+  transform:translateX(-50%); letter-spacing:1px;
+  white-space:nowrap;
+}
+
+.g-row {
+  display:flex; align-items:center;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  min-height:54px; position:relative;
+}
+.g-row:last-child { border-bottom:none; }
+
+.g-label {
+  width:180px; flex-shrink:0;
+  display:flex; align-items:center; gap:10px;
+  padding:0 14px;
+  border-right:1px solid rgba(255,255,255,0.07);
+  height:100%;
+}
+.g-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.g-name { font-size:13px; font-weight:500; color:#f0f2f5; white-space:nowrap; }
+.g-resp { font-size:10px; color:#555c6e; margin-left:auto; white-space:nowrap; }
+
+.g-track { flex:1; height:100%; position:relative; }
+
+.g-bar {
+  position:absolute; top:50%; transform:translateY(-50%);
+  height:24px; border-radius:5px;
+  display:flex; align-items:center; padding:0 8px;
+  font-size:9px; letter-spacing:0.5px;
+  color:rgba(0,0,0,0.75); font-weight:600;
+  overflow:hidden; white-space:nowrap;
+}
+
+/* ── DASHBOARD SLIDE ── */
+.dash-grid {
+  flex:1; display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:1fr 1fr;
+  gap:14px; padding:18px 36px 46px;
+  overflow:hidden;
+}
+.card {
+  background:#111318; border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; display:flex; flex-direction:column; overflow:hidden;
+}
+.card-hdr {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0;
+}
+.card-icon {
+  width:26px; height:26px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; flex-shrink:0;
+}
+.card-title { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:#8a90a0; }
+.card-body { flex:1; padding:12px 16px; overflow:hidden; }
+
+/* projects table */
+.ptable { width:100%; border-collapse:collapse; }
+.ptable th {
+  font-size:9px; letter-spacing:1px; text-transform:uppercase;
+  color:#555c6e; text-align:left; padding:0 8px 8px 0; font-weight:400;
+}
+.ptable td { padding:7px 8px 7px 0; border-top:1px solid rgba(255,255,255,0.05); vertical-align:middle; }
+.pname { font-weight:700; font-size:15px; color:#f0f2f5; }
+.pbadge {
+  display:inline-block; padding:3px 9px; border-radius:4px;
+  font-size:10px; letter-spacing:0.5px; font-weight:500;
+}
+.presp { font-size:13px; color:#8a90a0; }
+.pdate { font-size:12px; font-variant-numeric:tabular-nums; }
+.d-urgent { color:#ff6b6b; }
+.d-soon { color:#f59e0b; }
+.d-ok { color:#8a90a0; }
+
+/* calendar */
+.cal-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cal-mname { font-size:18px; font-weight:700; color:#f0f2f5; }
+.cal-yr { font-size:11px; color:#555c6e; margin-left:6px; }
+.cal-legend { display:flex; gap:12px; font-size:9px; letter-spacing:1px; color:#555c6e; align-items:center; }
+.cal-legend span { display:flex; align-items:center; gap:4px; }
+.cal-legend i { width:6px; height:6px; border-radius:50%; display:inline-block; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.cal-dow { font-size:9px; letter-spacing:1px; color:#555c6e; text-align:center; padding:3px 0 5px; text-transform:uppercase; }
+.cday {
+  aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  border-radius:5px; font-size:12px; color:#8a90a0; position:relative;
+}
+.cday.om { opacity:0.3; }
+.cday.today { background:#e8ff47; color:#0a0c10; font-weight:700; }
+.cday.ev::after, .cday.dl::after, .cday.bt::after {
+  content:''; position:absolute; bottom:2px;
+  width:4px; height:4px; border-radius:50%;
+}
+.cday.ev::after { background:#47b4ff; }
+.cday.dl::after { background:#ff6b6b; }
+.cday.bt::after { background:#f59e0b; }
+
+/* events */
+.ev-list { display:flex; flex-direction:column; gap:9px; }
+.ev-item { display:flex; gap:10px; align-items:flex-start; }
+.ev-dc { display:flex; flex-direction:column; align-items:center; gap:3px; flex-shrink:0; padding-top:3px; }
+.ev-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.ev-line { width:1px; flex:1; background:rgba(255,255,255,0.06); min-height:18px; }
+.ev-date { font-size:10px; color:#555c6e; letter-spacing:0.5px; margin-bottom:2px; }
+.ev-name { font-size:13px; color:#f0f2f5; font-weight:500; line-height:1.3; }
+
+/* avisos */
+.av-list { display:flex; flex-direction:column; gap:9px; }
+.av { border-radius:8px; padding:10px 12px; border-left:3px solid; }
+.av-u { background:rgba(255,107,107,0.08); border-color:#ff6b6b; }
+.av-i { background:rgba(71,180,255,0.08); border-color:#47b4ff; }
+.av-o { background:rgba(52,211,153,0.08); border-color:#34d399; }
+.av-lbl { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px; }
+.av-u .av-lbl { color:#ff6b6b; }
+.av-i .av-lbl { color:#47b4ff; }
+.av-o .av-lbl { color:#34d399; }
+.av-txt { font-size:13px; line-height:1.5; color:#f0f2f5; }
+</style>
+</head>
+<body>
+
+<div id="slideshow"></div>
+<div id="prog"></div>
+<div id="dots"></div>
+
+<script>
+// ── DATOS ──────────────────────────────────────────────────────────────────
+
+const PROJECTS = [
+  {
+    id: "2601_MIZ",
+    title: "2601 — MIZONA",
+    type: "Largometraje",
+    director: "Carlos Méndez",
+    status: "EN PRODUCCIÓN",
+    statusColor: "#34d399",
+    delivery: "15 may 2026",
+    deliveryUrgent: true,
+    totalWeeks: 18,
+    todayPct: 72,
+    months: [
+      {label:"FEB",cur:false},{label:"MAR",cur:false},{label:"ABR",cur:false},
+      {label:"MAY",cur:true},{label:"JUN",cur:false}
+    ],
+    phases: [
+      { name:"Ingest + Sync",  resp:"David",    color:"#3b82f6", start:0,  dur:3  },
+      { name:"Montaje",        resp:"Patricia",  color:"#f59e0b", start:2,  dur:6  },
+      { name:"Director's Cut", resp:"Patricia",  color:"#f59e0b", start:7,  dur:3  },
+      { name:"VFX",            resp:"Juliana",   color:"#a78bfa", start:8,  dur:5  },
+      { name:"Color",          resp:"Claudia",   color:"#3b82f6", start:12, dur:4, cur:true },
+      { name:"Sonido",         resp:"Ext.",      color:"#34d399", start:11, dur:5  },
+      { name:"LAB / Entrega",  resp:"Claudia",   color:"#fb923c", start:15, dur:3  },
+    ]
+  },
+  {
+    id: "2602_DES",
+    title: "2602 — DESIERTO",
+    type: "Serie — 6 episodios",
+    director: "Ana Romero",
+    status: "EN PRODUCCIÓN",
+    statusColor: "#34d399",
+    delivery: "22 may 2026",
+    deliveryUrgent: false,
+    totalWeeks: 22,
+    todayPct: 58,
+    months: [
+      {label:"ENE",cur:false},{label:"FEB",cur:false},{label:"MAR",cur:false},
+      {label:"ABR",cur:false},{label:"MAY",cur:true},{label:"JUN",cur:false}
+    ],
+    phases: [
+      { name:"Ingest",         resp:"David",         color:"#3b82f6", start:0,  dur:2  },
+      { name:"Montaje Ep.1–3", resp:"Patricia/Ogui", color:"#f59e0b", start:1,  dur:7  },
+      { name:"Montaje Ep.4–6", resp:"Bea",           color:"#f59e0b", start:5,  dur:7  },
+      { name:"VFX",            resp:"Juliana",       color:"#a78bfa", start:9,  dur:5  },
+      { name:"Sonido",         resp:"Ext.",          color:"#34d399", start:10, dur:7, cur:true },
+      { name:"Color",          resp:"Claudia",       color:"#3b82f6", start:14, dur:5  },
+      { name:"LAB",            resp:"Claudia",       color:"#fb923c", start:18, dur:4  },
+    ]
+  },
+  {
+    id: "2603_LAC",
+    title: "2603 — LACRIMOSA",
+    type: "Cortometraje",
+    director: "Pedro Vidal",
+    status: "EN RODAJE",
+    statusColor: "#a78bfa",
+    delivery: "1 jun 2026",
+    deliveryUrgent: false,
+    totalWeeks: 16,
+    todayPct: 26,
+    months: [
+      {label:"ABR",cur:false},{label:"MAY",cur:true},
+      {label:"JUN",cur:false},{label:"JUL",cur:false}
+    ],
+    phases: [
+      { name:"Rodaje",          resp:"Produc.",  color:"#a78bfa", start:0,  dur:5, cur:true },
+      { name:"Ingest + Sync",   resp:"David",    color:"#3b82f6", start:3,  dur:2  },
+      { name:"Montaje",         resp:"Ogui",     color:"#f59e0b", start:5,  dur:4  },
+      { name:"VFX",             resp:"Juliana",  color:"#a78bfa", start:8,  dur:3  },
+      { name:"Color + Sonido",  resp:"Claudia",  color:"#3b82f6", start:10, dur:4  },
+      { name:"LAB",             resp:"Claudia",  color:"#fb923c", start:13, dur:3  },
+    ]
+  }
+];
+
+const DASH = {
+  projects: [
+    { name:"2601_MIZ", phase:"Color",   pc:"#3b82f6", pb:"rgba(59,130,246,0.15)",  resp:"Claudia",  date:"15 may", urg:"urgent" },
+    { name:"2602_DES", phase:"Sonido",  pc:"#34d399", pb:"rgba(52,211,153,0.15)",  resp:"Ext.",     date:"22 may", urg:"soon"   },
+    { name:"2603_LAC", phase:"VFX",     pc:"#a78bfa", pb:"rgba(167,139,250,0.15)", resp:"Juliana",  date:"1 jun",  urg:"ok"     },
+    { name:"2604_ADD", phase:"Montaje", pc:"#f59e0b", pb:"rgba(245,158,11,0.15)",  resp:"Bea",      date:"10 jun", urg:"ok"     },
+  ],
+  events: [
+    { date:"15 may", name:"Entrega 2601_MIZ — Deadline Sitges",      color:"#ff6b6b" },
+    { date:"20 may", name:"Revisión avance 2603_LAC con dirección",   color:"#f59e0b" },
+    { date:"22 may", name:"Entrega 2602_DES — Picture Lock",          color:"#ff6b6b" },
+    { date:"28 may", name:"Reunión de coordinación semanal",          color:"#47b4ff" },
+    { date:"1 jun",  name:"Entrega 2603_LAC — Copia final",           color:"#ff6b6b" },
+  ],
+  avisos: [
+    { type:"u", label:"URGENTE",  text:"Entrega 2601_MIZ adelantada al viernes. Prioridad máxima en color." },
+    { type:"i", label:"REUNIÓN",  text:"Coordinación el miércoles a las 10:00. Asistencia de todo el equipo." },
+    { type:"o", label:"INFO",     text:"Sala de color disponible toda la semana. Reservar con Claudia." },
+  ],
+  cal: { year:2026, monthIdx:4, monthName:"MAYO", events:[8,13,20,28], deadlines:[15,22] }
+};
+
+// ── CLOCK ──────────────────────────────────────────────────────────────────
+const DAYS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function updateClock(){
+  const now = new Date();
+  const t = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const d = `${DAYS[now.getDay()]}, ${now.getDate()} de ${MONTHS_ES[now.getMonth()]} de ${now.getFullYear()}`;
+  document.querySelectorAll('.clock').forEach(el => el.textContent = t);
+  document.querySelectorAll('.clock-date').forEach(el => el.textContent = d);
+}
+
+// ── HEADER ─────────────────────────────────────────────────────────────────
+function hdr(label){
+  return `
+    <div class="hdr">
+      <div class="logo">
+        <div class="logo-box">SIA</div>
+        <div>
+          <div class="logo-title">Production Systems</div>
+          <div class="logo-sub">Departamento de Postproducción</div>
+        </div>
+      </div>
+      <div class="hdr-right">
+        ${label ? `<div class="hdr-label">${label}</div>` : ''}
+        <div>
+          <div class="clock">00:00</div>
+          <div class="clock-date"></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── GANTT SLIDE ────────────────────────────────────────────────────────────
+function ganttSlide(p){
+  const W = 180; // label width px
+  const sc = p.statusColor;
+  const du = p.deliveryUrgent;
+
+  const monthsHtml = `
+    <div class="gantt-months" style="padding-left:${W}px;">
+      ${p.months.map(m=>`<div class="gantt-month ${m.cur?'cur':''}">${m.label}</div>`).join('')}
+    </div>`;
+
+  const rowsHtml = p.phases.map(ph => {
+    const left  = (ph.start / p.totalWeeks * 100).toFixed(2);
+    const width = (ph.dur   / p.totalWeeks * 100).toFixed(2);
+    const ring  = ph.cur ? `box-shadow:0 0 0 2px ${ph.color};` : '';
+    return `
+      <div class="g-row">
+        <div class="g-label" style="width:${W}px;">
+          <div class="g-dot" style="background:${ph.color};"></div>
+          <div class="g-name">${ph.name}</div>
+          <div class="g-resp">${ph.resp}</div>
+        </div>
+        <div class="g-track">
+          <div class="g-bar" style="left:${left}%;width:calc(${width}% - 4px);background:${ph.color};${ring}">${ph.name}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const todayLeft = p.todayPct.toFixed(2);
+
+  return `
+    <div class="slide">
+      ${hdr('Proyecto ' + p.id)}
+      <div class="gantt-body">
+        <div>
+          <div style="display:flex;align-items:baseline;gap:10px;">
+            <div class="proj-title">${p.title}</div>
+            <div class="proj-meta">${p.type}</div>
+          </div>
+          <div class="proj-tags" style="margin-top:8px;">
+            <div class="tag" style="color:${sc};border-color:${sc};background:${sc}18;">${p.status}</div>
+            <div class="tag" style="color:#555c6e;border-color:rgba(255,255,255,0.1);">DIR. ${p.director.toUpperCase()}</div>
+            <div class="tag" style="color:${du?'#ff6b6b':'#8a90a0'};border-color:${du?'#ff6b6b':'rgba(255,255,255,0.1)'};${du?'background:rgba(255,107,107,0.08)':''}">
+              ENTREGA ${p.delivery.toUpperCase()}
+            </div>
+          </div>
+        </div>
+        <div class="gantt-wrap">
+          ${monthsHtml}
+          <div class="gantt-rows" style="flex:1;position:relative;overflow:hidden;">
+            <div class="today-line" style="left:calc(${W}px + (100% - ${W}px)*${todayLeft}/100);">
+              <div class="today-tag">HOY</div>
+            </div>
+            ${rowsHtml}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── CALENDAR ───────────────────────────────────────────────────────────────
+function buildCal(c){
+  const firstDay = new Date(c.year, c.monthIdx, 1).getDay();
+  const total    = new Date(c.year, c.monthIdx+1, 0).getDate();
+  const offset   = (firstDay + 6) % 7;
+  const today    = new Date();
+  const dows = ['L','M','X','J','V','S','D'];
+  let html = dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  // blanks
+  for(let i=0;i<offset;i++){
+    const pd = new Date(c.year, c.monthIdx, -offset+i+1).getDate();
+    html += `<div class="cday om">${pd}</div>`;
+  }
+  for(let d=1;d<=total;d++){
+    const isT = today.getFullYear()===c.year && today.getMonth()===c.monthIdx && today.getDate()===d;
+    const isDL = c.deadlines.includes(d);
+    const isEv = c.events.includes(d);
+    let cls = 'cday';
+    if(isT) cls+=' today';
+    else if(isDL && isEv) cls+=' bt';
+    else if(isDL) cls+=' dl';
+    else if(isEv) cls+=' ev';
+    html += `<div class="${cls}">${d}</div>`;
+  }
+  const rem = 42 - offset - total;
+  for(let i=1;i<=rem;i++) html+=`<div class="cday om">${i}</div>`;
+  return `
+    <div class="cal-top">
+      <div><span class="cal-mname">${c.monthName}</span><span class="cal-yr">${c.year}</span></div>
+      <div class="cal-legend">
+        <span><i style="background:#ff6b6b;"></i>Entrega</span>
+        <span><i style="background:#47b4ff;"></i>Evento</span>
+      </div>
+    </div>
+    <div class="cal-grid">${html}</div>`;
+}
+
+// ── DASHBOARD SLIDE ────────────────────────────────────────────────────────
+function dashSlide(){
+  const d = DASH;
+
+  const projRows = d.projects.map(p=>`
+    <tr>
+      <td class="pname">${p.name}</td>
+      <td><span class="pbadge" style="color:${p.pc};background:${p.pb};">${p.phase}</span></td>
+      <td class="presp">${p.resp}</td>
+      <td class="pdate d-${p.urg}" style="text-align:right;">${p.date}</td>
+    </tr>`).join('');
+
+  const evHtml = d.events.map((ev,i)=>`
+    <div class="ev-item">
+      <div class="ev-dc">
+        <div class="ev-dot" style="background:${ev.color};"></div>
+        ${i<d.events.length-1?'<div class="ev-line"></div>':''}
+      </div>
+      <div>
+        <div class="ev-date">${ev.date}</div>
+        <div class="ev-name">${ev.name}</div>
+      </div>
+    </div>`).join('');
+
+  const avHtml = d.avisos.map(av=>`
+    <div class="av av-${av.type}">
+      <div class="av-lbl">${av.label}</div>
+      <div class="av-txt">${av.text}</div>
+    </div>`).join('');
+
+  return `
+    <div class="slide">
+      ${hdr('Resumen del Departamento')}
+      <div class="dash-grid">
+
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-icon" style="background:rgba(232,255,71,0.12);color:#e8ff47;font-size:16px;">≡</div>
+            <div class="card-title">Proyectos Activos</div>
+          </div>
+          <div class="card-body">
+            <table class="ptable">
+              <thead><tr>
+                <th>Proyecto</th><th>Fase</th><th>Resp.</th><th style="text-align:right">Entrega</th>
+              </tr></thead>
+              <tbody>${projRows}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-icon" style="background:rgba(71,180,255,0.12);color:#47b4ff;font-size:16px;">▦</div>
+            <div class="card-title">Calendario — ${d.cal.monthName} ${d.cal.year}</div>
+          </div>
+          <div class="card-body">${buildCal(d.cal)}</div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-icon" style="background:rgba(167,139,250,0.12);color:#a78bfa;font-size:16px;">◎</div>
+            <div class="card-title">Próximos Eventos</div>
+          </div>
+          <div class="card-body"><div class="ev-list">${evHtml}</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-icon" style="background:rgba(255,107,107,0.12);color:#ff6b6b;font-size:18px;font-weight:700;">!</div>
+            <div class="card-title">Avisos del Departamento</div>
+          </div>
+          <div class="card-body"><div class="av-list">${avHtml}</div></div>
+        </div>
+
+      </div>
+    </div>`;
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+const DURATION = 12000;
+let cur = 0, timer = null;
+
+const allSlides = [
+  ...PROJECTS.map(p => ganttSlide(p)),
+  dashSlide()
+];
+const total = allSlides.length;
+
+const ss   = document.getElementById('slideshow');
+const prog = document.getElementById('prog');
+const dots = document.getElementById('dots');
+
+ss.innerHTML = allSlides.map((h,i)=>`<div id="s${i}">${h}</div>`).join('');
+dots.innerHTML = allSlides.map((_,i)=>`<div class="dot" id="d${i}"></div>`).join('');
+
+// Fix: slides already rendered as inner div, so grab them
+document.querySelectorAll('#slideshow > div').forEach(el => {
+  // move classes to inner .slide if needed
+});
+
+function go(n){
+  document.getElementById('s'+cur).querySelector('.slide').classList.remove('active');
+  document.getElementById('d'+cur).classList.remove('on');
+  cur = ((n % total) + total) % total;
+  document.getElementById('s'+cur).querySelector('.slide').classList.add('active');
+  document.getElementById('d'+cur).classList.add('on');
+
+  prog.style.transition='none';
+  prog.style.width='0%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    prog.style.transition=`width ${DURATION}ms linear`;
+    prog.style.width='100%';
+  }));
+  clearTimeout(timer);
+  timer = setTimeout(()=>go(cur+1), DURATION);
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'||e.key===' ') go(cur+1);
+  if(e.key==='ArrowLeft') go(cur-1);
+});
+
+go(0);
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
