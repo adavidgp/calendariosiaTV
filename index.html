@@ -604,6 +604,24 @@ document.addEventListener('keydown', e=>{
 go(0);
 updateClock();
 setInterval(updateClock, 1000);
+
+// FULLSCREEN
+function enterFS(){
+  const el = document.documentElement;
+  if(el.requestFullscreen) el.requestFullscreen();
+  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+function toggleFS(){
+  const isFS = document.fullscreenElement || document.webkitFullscreenElement;
+  if(isFS){
+    if(document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } else { enterFS(); }
+}
+// Primer clic activa fullscreen
+document.addEventListener('click', function onFirst(){ enterFS(); document.removeEventListener('click', onFirst); }, {once:true});
+// Tecla F toggle manual
+document.addEventListener('keydown', e=>{ if(e.key==='f'||e.key==='F') toggleFS(); });
 </script>
 </body>
 </html>
