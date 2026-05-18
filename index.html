@@ -229,6 +229,16 @@ async function loadExcel(url){
   return {projectId,weeks,totalWeeks,phasesRaw,todayWeekNum,depts};
 }
 
+function isoWeekToFriday(weekNum){
+  const year=new Date().getFullYear();
+  const jan4=new Date(year,0,4);
+  const monday=new Date(jan4);
+  monday.setDate(jan4.getDate()-((jan4.getDay()+6)%7)+(weekNum-1)*7);
+  const friday=new Date(monday);
+  friday.setDate(monday.getDate()+4);
+  return friday.getFullYear()+'/'+(String(friday.getMonth()+1).padStart(2,'0'))+'/'+String(friday.getDate()).padStart(2,'0');
+}
+
 function renderGantt(data){
   const {projectId,weeks,totalWeeks,phasesRaw,todayWeekNum,depts}=data;
   const LW=200;
@@ -256,15 +266,6 @@ function renderGantt(data){
   const montaje=depts.find(d=>d.name==='MONTAJE');
 const plPct=(montaje&&montaje.endW)?((montaje.endW/totalWeeks)*100).toFixed(2):null;
   const plWeekData=plPct!==null?weeks.find(w=>w.num===montaje.endW):null;
-  function isoWeekToFriday(weekNum){
-    const year=new Date().getFullYear();
-    const jan4=new Date(year,0,4);
-    const monday=new Date(jan4);
-    monday.setDate(jan4.getDate()-((jan4.getDay()+6)%7)+(weekNum-1)*7);
-    const friday=new Date(monday);
-    friday.setDate(monday.getDate()+4);
-    return friday.getFullYear()+'/'+(String(friday.getMonth()+1).padStart(2,'0'))+'/'+String(friday.getDate()).padStart(2,'0');
-  }
   const plDateStr=plWeekData?isoWeekToFriday(plWeekData.num):'';  
   const rowsHtml=depts.map(dept=>{
     const lp=((dept.startW-1)/totalWeeks*100).toFixed(2);
@@ -301,7 +302,9 @@ function renderOverview(projects){
     }).join('');
     const montaje=p.depts.find(d=>d.name==='MONTAJE');
     const plPctRow=montaje?(((montaje.endW-globalMin+1)/span)*100).toFixed(2):null;
-    const plBarRow=plPctRow!==null?'<div style="position:absolute;top:50%;bottom:-9999px;width:2px;left:'+plPctRow+'%;background:#ff4444;opacity:0.9;z-index:5;"><div style="position:absolute;top:0;font-size:9px;color:#ff4444;background:#0a0c10;padding:1px 4px;border-radius:2px;transform:translateX(-50%);letter-spacing:1px;white-space:nowrap;">PL</div></div>':'';
+    const plWeekDataRow=montaje?p.weeks.find(w=>w.num===montaje.endW):null;
+    const plDateStrRow=plWeekDataRow?isoWeekToFriday(plWeekDataRow.num):'';
+    const plBarRow=plPctRow!==null?'<div style="position:absolute;top:50%;bottom:-9999px;width:2px;left:'+plPctRow+'%;background:#ff4444;opacity:0.9;z-index:5;"><div style="position:absolute;top:0;font-size:9px;color:#ff4444;background:#0a0c10;padding:1px 4px;border-radius:2px;transform:translateX(-50%);letter-spacing:1px;white-space:nowrap;">PL '+(plDateStrRow||'')+'</div></div>':'';
     return '<div class="g-row" style="min-height:90px;overflow:visible;"><div class="g-label" style="width:'+LW+'px;"><div class="g-dot" style="background:'+color+';width:10px;height:10px;flex-shrink:0;"></div><div style="display:flex;flex-direction:column;gap:2px;"><div style="font-size:14px;font-weight:700;color:'+color+';">'+p.projectId+'</div><div style="font-size:9px;color:#555c6e;">S'+pad(allStart)+' → S'+pad(allEnd)+'</div></div></div><div class="g-track" style="position:relative;overflow:visible;"><div style="position:absolute;top:50%;transform:translateY(-50%);left:'+lp+'%;width:calc('+wp+'% - 2px);height:34px;border-radius:5px;background:'+color+'18;border:1px solid '+color+'30;"></div>'+subBars+plBarRow+'</div></div>';
   }).join('');
 
