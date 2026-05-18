@@ -36,12 +36,12 @@ html,body{width:100%;height:100%;background:#0a0c10;font-family:-apple-system,'H
 .week-num{font-weight:600;}
 .week-dates{font-size:7px;opacity:0.7;}
 .gantt-rows{flex:1;position:relative;overflow:hidden;}
-.g-row{display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,0.05);position:relative;min-height:64px;}
+.g-row{display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,0.05);position:relative;min-height:24px;}
 .g-row:last-child{border-bottom:none;}
-.g-label{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid rgba(255,255,255,0.07);height:100%;min-height:64px;}
+.g-label{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid rgba(255,255,255,0.07);height:100%;min-height:24px;}
 .g-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .g-name{font-size:12px;font-weight:500;color:#f0f2f5;white-space:normal;line-height:1.3;max-width:140px;}
-.g-track{flex:1;height:100%;min-height:64px;position:relative;}
+.g-track{flex:1;height:100%;min-height:44px;position:relative;}
 .g-bar{position:absolute;top:50%;transform:translateY(-50%);height:32px;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:11px;color:rgba(0,0,0,0.8);font-weight:600;overflow:hidden;white-space:nowrap;letter-spacing:0.3px;}
 .today-line{position:absolute;top:0;bottom:0;width:2px;background:#e8ff47;opacity:0.8;z-index:10;pointer-events:none;}
 .today-tag{position:absolute;top:0;font-size:9px;color:#e8ff47;background:#0a0c10;padding:1px 5px;border-radius:2px;transform:translateX(-50%);letter-spacing:1px;white-space:nowrap;}
@@ -108,7 +108,7 @@ html,body{width:100%;height:100%;background:#0a0c10;font-family:-apple-system,'H
 <div id="dots"></div>
 
 <script>
-const SIA_SVG = '<img src="Logotipo-Color-Horizontal-Negativo_RGB72.svg" style="height:60px;width:auto;display:block;">';
+const SIA_SVG = '<img src="Logotipo-Color-Horizontal-Negativo_RGB72.svg" style="height:100px;width:auto;display:block;">';
 
 const DEPT_COLORS = {
   'INGESTA + MONTAJE GUION':'#3b82f6',
@@ -254,17 +254,25 @@ function renderGantt(data){
 
   const todayPct=todayWeekNum?(((todayWeekNum-0.5)/totalWeeks)*100).toFixed(2):null;
   const montaje=depts.find(d=>d.name==='MONTAJE');
-  const plPct=(montaje&&montaje.endW)?((montaje.endW/totalWeeks)*100).toFixed(2):null;
-
+const plPct=(montaje&&montaje.endW)?((montaje.endW/totalWeeks)*100).toFixed(2):null;
+  const plWeekData=plPct!==null?weeks.find(w=>w.num===montaje.endW):null;
+  function isoWeekToFriday(weekNum){
+    const year=new Date().getFullYear();
+    const jan4=new Date(year,0,4);
+    const monday=new Date(jan4);
+    monday.setDate(jan4.getDate()-((jan4.getDay()+6)%7)+(weekNum-1)*7);
+    const friday=new Date(monday);
+    friday.setDate(monday.getDate()+4);
+    return friday.getFullYear()+'/'+(String(friday.getMonth()+1).padStart(2,'0'))+'/'+String(friday.getDate()).padStart(2,'0');
+  }
+  const plDateStr=plWeekData?isoWeekToFriday(plWeekData.num):'';  
   const rowsHtml=depts.map(dept=>{
     const lp=((dept.startW-1)/totalWeeks*100).toFixed(2);
     const wp=((dept.endW-dept.startW+1)/totalWeeks*100).toFixed(2);
-    return '<div class="g-row"><div class="g-label" style="width:'+LW+'px;"><div class="g-dot" style="background:'+dept.color+';"></div><div class="g-name">'+dept.name+'</div></div><div class="g-track"><div class="g-bar" style="left:'+lp+'%;width:calc('+wp+'% - 3px);background:'+dept.color+';">'+dept.name+'</div></div></div>';
-  }).join('');
+return '<div class="g-row"><div class="g-label" style="width:'+LW+'px;"><div class="g-dot" style="background:'+dept.color+';"></div><div class="g-name">'+dept.name.replace('INGESTA + MONTAJE GUION','INGESTA +<br>MONTAJE GUIÓN')+'</div></div><div class="g-track"><div class="g-bar" style="left:'+lp+'%;width:calc('+wp+'% - 3px);background:'+dept.color+';">'+dept.name+'</div></div></div>';  }).join('');
 
   const todayLine=todayPct!==null?'<div class="today-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+todayPct+' / 100);"><div class="today-tag">HOY</div></div>':'';
-  const plLine=plPct!==null?'<div class="pl-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+plPct+' / 100);"><div class="pl-tag">PL</div></div>':'';
-
+const plLine=plPct!==null?'<div class="pl-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+plPct+' / 100);"><div class="pl-tag">PL '+(plDateStr||'')+'</div></div>':'';
   return '<div class="slide">'+hdr('Proyecto '+projectId)+'<div class="gantt-body"><div><div style="display:flex;align-items:baseline;gap:10px;"><div class="proj-title">'+projectId+'</div></div><div class="proj-tags" style="margin-top:8px;"><div class="tag" style="color:#34d399;border-color:#34d399;background:rgba(52,211,153,0.08);">EN PRODUCCIÓN</div><div class="tag" style="color:#555c6e;border-color:rgba(255,255,255,0.1);">'+totalWeeks+' SEMANAS</div>'+(todayWeekNum?'<div class="tag" style="color:#e8ff47;border-color:#e8ff47;background:rgba(232,255,71,0.06);">S'+pad(todayWeekNum)+' — SEMANA ACTUAL</div>':'')+'</div></div><div class="gantt-wrap"><div class="phases-bar"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);background:#0d1017;"></div><div class="phases-track">'+phasesHtml+'</div></div><div class="weeks-bar"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);"></div><div class="weeks-track">'+weeksHtml+'</div></div><div class="gantt-rows" style="flex:1;position:relative;overflow:hidden;">'+todayLine+plLine+rowsHtml+'</div></div></div></div>';
 }
 
