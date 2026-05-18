@@ -4,17 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SIA — Panel TV</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;background:#0a0c10;font-family:'Figtree',-apple-system,'Helvetica Neue',Arial,sans-serif;color:#f0f2f5;overflow:hidden;}
+html,body{width:100%;height:100%;background:#0a0c10;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;color:#f0f2f5;overflow:hidden;}
 #slideshow{width:100%;height:100%;position:relative;}
 .slide{position:absolute;inset:0;opacity:0;transition:opacity 0.7s ease;pointer-events:none;display:flex;flex-direction:column;background:#0a0c10;}
 .slide.active{opacity:1;pointer-events:auto;}
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:22px 40px;background:#111318;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
+.hdr{display:flex;align-items:center;justify-content:center;padding:22px 40px;background:#111318;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
 .logo{display:flex;align-items:center;}
 .hdr-right{display:flex;align-items:center;gap:28px;}
 .hdr-label{font-size:10px;color:#555c6e;letter-spacing:1.5px;text-transform:uppercase;}
@@ -47,9 +44,9 @@ html,body{width:100%;height:100%;background:#0a0c10;font-family:'Figtree',-apple
 .g-track{flex:1;height:100%;min-height:44px;position:relative;}
 .g-bar{position:absolute;top:50%;transform:translateY(-50%);height:32px;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:11px;color:rgba(0,0,0,0.8);font-weight:600;overflow:hidden;white-space:nowrap;letter-spacing:0.3px;}
 .today-line{position:absolute;top:0;bottom:0;width:2px;background:#e8ff47;opacity:0.8;z-index:10;pointer-events:none;}
-.today-tag{position:absolute;top:0;font-size:9px;color:#e8ff47;background:#0a0c10;padding:2px 5px;border-radius:2px;transform:translateX(-50%);letter-spacing:1px;white-space:nowrap;text-align:center;line-height:1.5;}
+.today-tag{position:absolute;top:0;font-size:9px;color:#e8ff47;background:#0a0c10;padding:1px 5px;border-radius:2px;transform:translateX(-50%);letter-spacing:1px;white-space:nowrap;}
 .pl-line{position:absolute;top:0;bottom:0;width:2px;background:#ff4444;opacity:0.9;z-index:10;pointer-events:none;}
-.pl-tag{position:absolute;top:0;font-size:9px;color:#ff4444;background:#0a0c10;padding:2px 5px;border-radius:2px;transform:translateX(-50%);letter-spacing:1px;white-space:nowrap;text-align:center;line-height:1.5;}
+.pl-tag{position:absolute;top:0;font-size:9px;color:#ff4444;background:#0a0c10;padding:1px 5px;border-radius:2px;transform:translateX(-50%);letter-spacing:1px;white-space:nowrap;}
 #loading{position:fixed;inset:0;background:#0a0c10;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;}
 .loading-text{font-size:12px;color:#555c6e;letter-spacing:2px;text-transform:uppercase;}
 .loading-bar-wrap{width:200px;height:2px;background:rgba(255,255,255,0.08);border-radius:1px;}
@@ -330,18 +327,15 @@ function renderGantt(data){
   const montaje=depts.find(d=>d.name==='MONTAJE');
 const plPct=(montaje&&montaje.endW)?((montaje.endW/totalWeeks)*100).toFixed(2):null;
   const plWeekData=plPct!==null?weeks.find(w=>w.num===montaje.endW):null;
-  const plDateStr=plWeekData?isoWeekToFriday(plWeekData.num):'';
-
-  const todayDateStr=(()=>{const n=new Date();return n.getFullYear()+'/'+(String(n.getMonth()+1).padStart(2,'0'))+'/'+String(n.getDate()).padStart(2,'0');})();
-
+  const plDateStr=plWeekData?isoWeekToFriday(plWeekData.num):'';  
   const rowsHtml=depts.map(dept=>{
     const lp=((dept.startW-1)/totalWeeks*100).toFixed(2);
     const wp=((dept.endW-dept.startW+1)/totalWeeks*100).toFixed(2);
 return '<div class="g-row"><div class="g-label" style="width:'+LW+'px;"><div class="g-dot" style="background:'+dept.color+';"></div><div class="g-name">'+dept.name.replace('INGESTA + MONTAJE GUION','INGESTA +<br>MONTAJE GUIÓN')+'</div></div><div class="g-track"><div class="g-bar" style="left:'+lp+'%;width:calc('+wp+'% - 3px);background:'+dept.color+';">'+dept.name+'</div></div></div>';  }).join('');
 
-  const todayLine=todayPct!==null?'<div class="today-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+todayPct+' / 100);"><div class="today-tag">HOY<br>'+todayDateStr+'</div></div>':'';
-const plLine=plPct!==null?'<div class="pl-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+plPct+' / 100);"><div class="pl-tag">PL<br>'+(plDateStr||'')+'</div></div>':'';
-  return '<div class="slide">'+hdr('Proyecto '+projectId)+'<div class="gantt-body"><div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><div class="proj-title">'+projectId+'</div>'+(plDateStr?'<div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-radius:6px;border:2px solid #ff4444;background:rgba(255,68,68,0.08);"><div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#ff4444;font-weight:700;">PICTURE LOCK</div><div style="font-size:20px;font-weight:800;color:#ff4444;letter-spacing:1px;">'+plDateStr+'</div></div>':'')+'</div><div class="proj-tags" style="margin-top:8px;"><div class="tag" style="color:#34d399;border-color:#34d399;background:rgba(52,211,153,0.08);">EN PRODUCCIÓN</div><div class="tag" style="color:#555c6e;border-color:rgba(255,255,255,0.1);">'+totalWeeks+' SEMANAS</div>'+(todayWeekNum?'<div class="tag" style="color:#e8ff47;border-color:#e8ff47;background:rgba(232,255,71,0.06);">S'+pad(todayWeekNum)+' — SEMANA ACTUAL</div>':'')+'</div></div><div class="gantt-wrap"><div class="phases-bar"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);background:#0d1017;"></div><div class="phases-track">'+phasesHtml+'</div></div><div class="weeks-bar"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);"></div><div class="weeks-track">'+weeksHtml+'</div></div><div class="gantt-rows" style="flex:1;position:relative;overflow:hidden;">'+todayLine+plLine+rowsHtml+'</div></div></div></div>';
+  const todayLine=todayPct!==null?'<div class="today-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+todayPct+' / 100);"><div class="today-tag">HOY</div></div>':'';
+const plLine=plPct!==null?'<div class="pl-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+plPct+' / 100);"><div class="pl-tag">PL '+(plDateStr||'')+'</div></div>':'';
+  return '<div class="slide">'+hdr('Proyecto '+projectId)+'<div class="gantt-body"><div><div style="display:flex;align-items:baseline;gap:10px;"><div class="proj-title">'+projectId+'</div></div><div class="proj-tags" style="margin-top:8px;"><div class="tag" style="color:#34d399;border-color:#34d399;background:rgba(52,211,153,0.08);">EN PRODUCCIÓN</div><div class="tag" style="color:#555c6e;border-color:rgba(255,255,255,0.1);">'+totalWeeks+' SEMANAS</div>'+(todayWeekNum?'<div class="tag" style="color:#e8ff47;border-color:#e8ff47;background:rgba(232,255,71,0.06);">S'+pad(todayWeekNum)+' — SEMANA ACTUAL</div>':'')+'</div></div><div class="gantt-wrap"><div class="phases-bar"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);background:#0d1017;"></div><div class="phases-track">'+phasesHtml+'</div></div><div class="weeks-bar"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);"></div><div class="weeks-track">'+weeksHtml+'</div></div><div class="gantt-rows" style="flex:1;position:relative;overflow:hidden;">'+todayLine+plLine+rowsHtml+'</div></div></div></div>';
 }
 
 function renderOverview(projects){
@@ -388,7 +382,7 @@ function renderOverview(projects){
   const legendHtml=Object.entries(DEPT_COLORS).map(([name,color])=>'<span style="display:flex;align-items:center;gap:5px;font-size:9px;color:#8a90a0;"><span style="width:8px;height:8px;border-radius:2px;background:'+color+';display:inline-block;flex-shrink:0;"></span>'+name+'</span>').join('');
   const todayLine=todayPct!==null?'<div class="today-line" style="left:calc('+LW+'px + (100% - '+LW+'px) * '+todayPct+' / 100);"><div class="today-tag">HOY</div></div>':'';
 
-  return '<div class="slide">'+hdr('Vista General — Todos los Proyectos')+'<div class="gantt-body"><div><div class="proj-title" style="font-size:24px;">Solapamiento de Producción</div><div style="font-size:11px;color:#555c6e;margin-top:4px;letter-spacing:1px;text-transform:uppercase;">Semanas S'+pad(globalMin)+' — S'+pad(globalMax)+' · '+span+' semanas totales</div></div><div class="gantt-wrap"><div style="display:flex;background:#181c24;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);"></div><div style="flex:1;position:relative;height:28px;">'+axisHtml+'</div></div><div class="gantt-rows" style="flex:1;position:relative;overflow:hidden;">'+gridHtml+todayLine+rowsHtml+'</div></div><div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:4px;">'+legendHtml+'</div></div></div>';
+  return '<div class="slide">'+hdr('Vista General — Todos los Proyectos')+'<div class="gantt-body"><div><div class="proj-title" style="font-size:24px;">Solapamiento de Postproducción</div><div style="font-size:11px;color:#555c6e;margin-top:4px;letter-spacing:1px;text-transform:uppercase;">Semanas S'+pad(globalMin)+' — S'+pad(globalMax)+' · '+span+' semanas totales</div></div><div class="gantt-wrap"><div style="display:flex;background:#181c24;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;"><div style="width:'+LW+'px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);"></div><div style="flex:1;position:relative;height:28px;">'+axisHtml+'</div></div><div class="gantt-rows" style="flex:1;position:relative;overflow:hidden;">'+gridHtml+todayLine+rowsHtml+'</div></div><div style="display:flex;flex-wrap:wrap;gap:12px;padding-top:4px;">'+legendHtml+'</div></div></div>';
 }
 
 function buildCal(c){
@@ -398,7 +392,7 @@ function buildCal(c){
   const today=new Date();
   const dows=['L','M','X','J','V','S','D'];
   let html=dows.map(d=>'<div class="cal-dow">'+d+'</div>').join('');
-  for(let i=0;i<offset;i++){const pd=new Date(c.year,c.monthIdx,-(offset-i-1)).getDate();html+='<div class="cday om">'+pd+'</div>';}
+  for(let i=0;i<offset;i++){const pd=new Date(c.year,c.monthIdx,-offset+i+1).getDate();html+='<div class="cday om">'+pd+'</div>';}
   for(let d=1;d<=total;d++){
     const isT=today.getFullYear()===c.year&&today.getMonth()===c.monthIdx&&today.getDate()===d;
     const isDL=c.deadlines.includes(d),isEv=c.events.includes(d);
